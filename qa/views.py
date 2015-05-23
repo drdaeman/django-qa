@@ -5,9 +5,21 @@ from django.contrib.auth import authenticate, login
 from django.http import HttpResponseRedirect, HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
+import django.contrib.auth
+
+auth_user_model = django.contrib.auth.get_user_model()
+
 from qa.models import *
 import datetime
 from qa.forms import UserForm, UserProfileForm
+
+def get_user_profile(user_ob):
+    try:
+        obj = UserProfile.objects.get(user=user_ob)
+    except:
+        obj = UserProfile(user=user_ob)
+        obj.save()
+    return obj
 
 def search(request):
     if request.method == 'POST':
@@ -97,9 +109,10 @@ def index(request):
     })
     return HttpResponse(template.render(context))
 
+
 def profile(request, user_id):
-    user_ob = User.objects.get(id=user_id)
-    user = UserProfile.objects.get(user=user_ob)
+    user_ob = auth_user_model.objects.get(id=user_id)
+    user = get_user_profile(user_ob)
     return render(request, 'qa/profile.html', {'user': user})
 
 def add(request):
@@ -113,8 +126,9 @@ def add(request):
         question_text = request.POST['question']
         tags_text = request.POST['tags']
         user_id = request.POST['user']
-        user_ob = User.objects.get(id=user_id)
-        user = UserProfile.objects.get(user=user_ob)
+        print user_id
+        user_ob = auth_user_model.objects.get(id=user_id)
+        user = get_user_profile(user_ob)
 
         if question_text.strip() == '':
             return render(request, 'qa/add.html', {'message': 'Empty'})
@@ -147,8 +161,8 @@ def comment(request, answer_id):
     if request.method == 'POST':
         comment_text = request.POST['comment']
         user_id = request.POST['user']
-        user_ob = User.objects.get(id=user_id)
-        user = UserProfile.objects.get(user=user_ob)
+        user_ob = auth_user_model.objects.get(id=user_id)
+        user = get_user_profile(user_ob)
         user.points += 1
         user.save()
 
@@ -229,8 +243,8 @@ def add_answer(request):
         user_id = request.POST['user']
 
         question = Question.objects.get(pk=question_id)
-        user_ob = User.objects.get(id=user_id)
-        user = UserProfile.objects.get(user=user_ob)
+        user_ob = auth_user_model.objects.get(id=user_id)
+        user = get_user_profile(user_ob)
         user.points += 5
         user.save()
 
@@ -264,8 +278,8 @@ def add_answer(request):
 
 def vote(request, user_id, answer_id, question_id, op_code):
 
-    user_ob = User.objects.get(id=user_id)
-    user = UserProfile.objects.get(user=user_ob)
+    user_ob = auth_user_model.objects.get(id=user_id)
+    user = get_user_profile(user_ob)
     answer = Answer.objects.get(pk=answer_id)
     question = Question.objects.get(pk=question_id)
 
@@ -323,8 +337,8 @@ def vote(request, user_id, answer_id, question_id, op_code):
 
 def thumb(request, user_id, question_id, op_code):
 
-    user_ob = User.objects.get(id=user_id)
-    user = UserProfile.objects.get(user=user_ob)
+    user_ob = auth_user_model.objects.get(id=user_id)
+    user = get_user_profile(user_ob)
     question = Question.objects.get(pk=question_id)
 
     answer_list = question.answer_set.order_by('-votes')

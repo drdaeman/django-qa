@@ -4,14 +4,20 @@ from django.contrib import admin
 from qa import views
 
 from django.conf.urls import url, include
-from django.contrib.auth.models import User
 from qa.models import Question, Tag
 from rest_framework import routers, serializers, viewsets
+
+from django.conf import settings
+from django.db import models
+
+import django.contrib.auth
+
+auth_user_model = django.contrib.auth.get_user_model()
 
 # Serializers define the API representation.
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
-        model = User
+        model = auth_user_model
         fields = ('url', 'username', 'email', 'is_staff')
 
 class QuestionSerializer(serializers.HyperlinkedModelSerializer):
@@ -26,7 +32,7 @@ class QuestionSerializer(serializers.HyperlinkedModelSerializer):
 
 # ViewSets define the view behavior.
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+    queryset = auth_user_model.objects.all()
     serializer_class = UserSerializer
 
 class QuestionViewSet(viewsets.ModelViewSet):
