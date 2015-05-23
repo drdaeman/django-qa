@@ -1,0 +1,3 @@
+include README.md
+recursive-include qa/templates *
+recursive-include qa/static *
