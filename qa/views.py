@@ -1,7 +1,8 @@
 from django.http import HttpResponse
 from django.template import RequestContext, loader
-from django.shortcuts import get_object_or_404, render, render_to_response
+from django.shortcuts import get_object_or_404, render, render_to_response, resolve_url
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect, HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -115,12 +116,10 @@ def profile(request, user_id):
     user = get_user_profile(user_ob)
     return render(request, 'qa/profile.html', {'user': user})
 
+@login_required
 def add(request):
     template = loader.get_template('qa/add.html')
     context = RequestContext(request)
-
-    if request.user.is_anonymous():
-        return HttpResponseRedirect("/login/")
 
     if request.method == 'POST':
         question_text = request.POST['question']
@@ -153,11 +152,8 @@ def add(request):
         return HttpResponseRedirect('/')
     return HttpResponse(template.render(context))
 
+@login_required
 def comment(request, answer_id):
-
-    if request.user.is_anonymous():
-        return HttpResponseRedirect("/login/")
-
     if request.method == 'POST':
         comment_text = request.POST['comment']
         user_id = request.POST['user']
@@ -226,10 +222,8 @@ def detail(request, question_id):
         raise Http404("Question does not exist")
     return render(request, 'qa/detail.html', {'answers': answers, 'question': question}, )
 
+@login_required
 def answer(request, question_id):
-    if request.user.is_anonymous():
-        return HttpResponseRedirect("/login/")
-
     try:
         question = Question.objects.get(pk=question_id)
     except Question.DoesNotExist:
