@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.template import RequestContext, loader
 from django.shortcuts import get_object_or_404, render, render_to_response, resolve_url
 from django.contrib.auth import authenticate, login
@@ -7,6 +7,7 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 import django.contrib.auth
+from django.views.decorators.http import require_POST
 
 auth_user_model = django.contrib.auth.get_user_model()
 
@@ -22,35 +23,33 @@ def get_user_profile(user_ob):
         obj.save()
     return obj
 
+@require_POST
 def search(request):
-    if request.method == 'POST':
-        word = request.POST['word']
-        latest_question_list = Question.objects.filter(question_text__contains=word)
-        paginator = Paginator(latest_question_list, 10)
-        page = request.GET.get('page')
-        try:
-            questions = paginator.page(page)
-        except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-            questions = paginator.page(1)
-        except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-            questions = paginator.page(paginator.num_pages)
+    word = request.POST['word']
+    latest_question_list = Question.objects.filter(question_text__contains=word)
+    paginator = Paginator(latest_question_list, 10)
+    page = request.GET.get('page')
+    try:
+        questions = paginator.page(page)
+    except PageNotAnInteger:
+    # If page is not an integer, deliver first page.
+        questions = paginator.page(1)
+    except EmptyPage:
+    # If page is out of range (e.g. 9999), deliver last page of results.
+        questions = paginator.page(paginator.num_pages)
 
-        latest_noans_list = Question.objects.order_by('-pub_date').filter(tags__slug__contains=word,answer__isnull=True)[:10]
-        top_questions = Question.objects.order_by('-reward').filter(tags__slug__contains=word,answer__isnull=True,reward__gte=1)[:10]
-        count = Question.objects.count
-        count_a = Answer.objects.count
+    latest_noans_list = Question.objects.order_by('-pub_date').filter(tags__slug__contains=word,answer__isnull=True)[:10]
+    top_questions = Question.objects.order_by('-reward').filter(tags__slug__contains=word,answer__isnull=True,reward__gte=1)[:10]
+    count = Question.objects.count
+    count_a = Answer.objects.count
 
-        template = loader.get_template('qa/index.html')
-        context = RequestContext(request, {
+    return render(request, 'qa/index.html', {
         'questions': questions,
         'totalcount': count,
         'anscount': count_a,
         'noans': latest_noans_list,
         'reward': top_questions,
-        })
-    return HttpResponse(template.render(context))
+    })
 
 def tag(request, tag):
     word = tag
@@ -230,45 +229,43 @@ def answer(request, question_id):
         raise Http404("Question does not exist")
     return render(request, 'qa/answer.html', {'question': question})
 
+@require_POST
 def add_answer(request):
-    if request.method == 'POST':
-        answer_text = request.POST['answer']
-        question_id = request.POST['question']
-        user_id = request.POST['user']
+    answer_text = request.POST['answer']
+    question_id = request.POST['question']
+    user_id = request.POST['user']
 
-        question = Question.objects.get(pk=question_id)
-        user_ob = auth_user_model.objects.get(id=user_id)
-        user = get_user_profile(user_ob)
-        user.points += 5
-        user.save()
+    question = Question.objects.get(pk=question_id)
+    user_ob = auth_user_model.objects.get(id=user_id)
+    user = get_user_profile(user_ob)
+    user.points += 5
+    user.save()
 
-        if answer_text.strip() == '':
-            return render(request, 'qa/answer.html', {'question': question, 'message': 'Empty'})
+    if answer_text.strip() == '':
+        return render(request, 'qa/answer.html', {'question': question, 'message': 'Empty'})
 
-        a = Answer()
-        pub_date = datetime.datetime.now()
-        a.answer_text = answer_text
-        a.question = question
-        a.user_data = user
-        a.pub_date = pub_date
-        a.save()
+    a = Answer()
+    pub_date = datetime.datetime.now()
+    a.answer_text = answer_text
+    a.question = question
+    a.user_data = user
+    a.pub_date = pub_date
+    a.save()
 
-        answer_list = question.answer_set.order_by('-votes')
+    answer_list = question.answer_set.order_by('-votes')
 
-        paginator = Paginator(answer_list, 10)
-        page = request.GET.get('page')
-        try:
-            answers = paginator.page(page)
-        except PageNotAnInteger:
-            # If page is not an integer, deliver first page.
-            answers = paginator.page(1)
-        except EmptyPage:
-            # If page is out of range (e.g. 9999), deliver last page of results.
-            answers = paginator.page(paginator.num_pages)
+    paginator = Paginator(answer_list, 10)
+    page = request.GET.get('page')
+    try:
+        answers = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        answers = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        answers = paginator.page(paginator.num_pages)
 
-        return render(request, 'qa/detail.html', {'question': question, 'answers': answers})
-
-    return render(request, 'qa/detail.html', {'question': question})
+    return render(request, 'qa/detail.html', {'question': question, 'answers': answers})
 
 def vote(request, user_id, answer_id, question_id, op_code):
 
