@@ -1,24 +1,9 @@
-from qa.models import *
-from django.contrib.auth.models import User
+from __future__ import absolute_import
 from django import forms
+from .models import Question
 
-import django.contrib.auth
-
-auth_user_model = django.contrib.auth.get_user_model()
 
 class QuestionForm(forms.ModelForm):
     class Meta:
         model = Question
-        fiels = ('question_text', 'tags')
-        
-class UserForm(forms.ModelForm):
-    password = forms.CharField(widget=forms.PasswordInput())
-
-    class Meta:
-        model = auth_user_model
-        fields = ('username', 'email', 'password')
-
-class UserProfileForm(forms.ModelForm):
-    class Meta:
-        model = UserProfile
-        fields = ('website', 'picture')
+        fields = ('question_text', 'tags')

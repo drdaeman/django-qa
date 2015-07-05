@@ -48,7 +48,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    # 'django.contrib.auth.middleware.SessionAuthenticationMiddleware',  # Django 1.7+
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -97,3 +97,6 @@ SITE_ID = 1
 STATIC_URL = '/static/'
 
 MARKDOWN_EDITOR_SKIN = 'simple'
+
+LOGIN_URL = '/login/'
+LOGOUT_URL = '/logout/'
