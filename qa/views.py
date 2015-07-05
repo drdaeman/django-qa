@@ -51,8 +51,7 @@ def search(request):
 
 
 def tag(request, slug):
-    word = slug
-    latest_question_list = Question.objects.filter(tags__slug__contains=word)
+    latest_question_list = Question.objects.filter(tags__slug=slug)
     paginator = Paginator(latest_question_list, 10)
     page = request.GET.get('page')
     try:
@@ -66,11 +65,11 @@ def tag(request, slug):
 
     latest_noans_list = Question.objects\
         .order_by('-pub_date')\
-        .filter(tags__slug__contains=word,
+        .filter(tags__slug=slug,
                 answer__isnull=True)[:10]
     top_questions = Question.objects\
         .order_by('-reward') \
-        .filter(tags__slug__contains=word,
+        .filter(tags__slug=slug,
                 answer__isnull=True,
                 reward__gte=1)[:10]
     count = Question.objects.count
