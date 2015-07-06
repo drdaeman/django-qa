@@ -210,7 +210,14 @@ def detail(request, question_id):
         # If page is out of range (e.g. 9999), deliver last page of results.
         answers = paginator.page(paginator.num_pages)
 
-    return render(request, 'qa/detail.html', {'answers': answers, 'question': question}, )
+    if request.user.is_authenticated():
+        vote = QVoter.objects.filter(question=question, user__user=request.user).first()
+        if vote is not None:
+            vote = "up" if vote.vote else "down"
+    else:
+        vote = None
+
+    return render(request, 'qa/detail.html', {'answers': answers, 'question': question, 'vote': vote})
 
 
 @login_required
@@ -245,12 +252,15 @@ def add_answer(request):
 
     return redirect("qa:detail", question_id=question.id)
 
+@require_POST
 @login_required
 @transaction.atomic
-def vote(request, answer_id, question_id, op_code):
+def vote(request, answer_id, question_id):
     user = get_user_profile(request.user)
     question = get_object_or_404(Question, pk=question_id)
     answer_ob = get_object_or_404(Answer, pk=answer_id)
+    op_code = request.POST.get("vote", "up")
+    is_upvote = op_code == "up"
 
     answer_list = question.answer_set.order_by('-votes')
 
@@ -265,21 +275,21 @@ def vote(request, answer_id, question_id, op_code):
         # If page is out of range (e.g. 9999), deliver last page of results.
         answers = paginator.page(paginator.num_pages)
 
-    if Answer.objects.filter(id=answer_id, user_data=user).exists():
+    if Answer.objects.select_for_update().filter(id=answer_id, user_data=user).exists():
         return render(request, 'qa/detail.html',
                       {'question': question, 'answers': answers, 'message': "You cannot vote on your answer!"})
 
-    if Voter.objects.filter(answer_id=answer_id, user=user).exists():
+    if Voter.objects.select_for_update().filter(answer_id=answer_id, user=user).exists():
         return render(request, 'qa/detail.html',
                       {'question': question, 'answers': answers, 'message': "You've already cast vote on this answer!"})
 
-    if op_code == '0':
+    if is_upvote:
         answer_ob.votes += 1
         u = answer_ob.user_data
         u.points += 10
         u.points += question.reward
         u.save()
-    if op_code == '1':
+    else:
         answer_ob.votes -= 1
         u = answer_ob.user_data
         u.points -= 10
@@ -299,19 +309,19 @@ def vote(request, answer_id, question_id, op_code):
         # If page is out of range (e.g. 9999), deliver last page of results.
         answers = paginator.page(paginator.num_pages)
 
-    v = Voter()
-    v.user = user
-    v.answer = answer_ob
-    v.save()
+    Voter.objects.create(user=user, answer=answer_ob, vote=is_upvote)
 
     return render(request, 'qa/detail.html', {'question': question, 'answers': answers})
 
 
+@require_POST
 @login_required
 @transaction.atomic
-def thumb(request, question_id, op_code):
+def thumb(request, question_id):
     user = get_user_profile(request.user)
-    question = Question.objects.get(pk=question_id)
+    question = Question.objects.select_for_update().get(pk=question_id)
+    op_code = request.POST.get("vote", "up")
+    is_upvote = op_code == "up"
 
     answer_list = question.answer_set.order_by('-votes')
 
@@ -326,25 +336,24 @@ def thumb(request, question_id, op_code):
         # If page is out of range (e.g. 9999), deliver last page of results.
         answers = paginator.page(paginator.num_pages)
 
-    if QVoter.objects.filter(question_id=question_id, user=user).exists():
-        return render(request, 'qa/detail.html', {'question': question, 'answers': answers,
+
+    vote = QVoter.objects.select_for_update().filter(question=question, user__user=request.user).first()
+    if vote is not None:
+        vote = "up" if vote.vote else "down"
+        return render(request, 'qa/detail.html', {'question': question, 'answers': answers, 'vote': vote,
                                                   'message': "You've already cast vote on this question!"})
 
-    if op_code == '0':
+    if is_upvote:
         question.reward += 5
         u = question.user_data
         u.points += 5
         u.save()
-    if op_code == '1':
+    else:
         question.reward -= 5
         u = question.user_data
         u.points -= 5
         u.save()
     question.save()
-
-    v = QVoter()
-    v.user = user
-    v.question = question
-    v.save()
+    QVoter.objects.create(user=user, question=question, vote=is_upvote)
 
     return redirect("qa:detail", question_id=question.id)

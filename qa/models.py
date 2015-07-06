@@ -55,11 +55,19 @@ class Answer(models.Model):
 class Voter(models.Model):
     user = models.ForeignKey(UserProfile)
     answer = models.ForeignKey(Answer)
+    vote = models.BooleanField(blank=True)
+
+    class Meta:
+        unique_together = (("user", "answer"),)
 
 
 class QVoter(models.Model):
     user = models.ForeignKey(UserProfile)
     question = models.ForeignKey(Question)
+    vote = models.BooleanField(blank=True)
+
+    class Meta:
+        unique_together = (("user", "question"),)
 
 
 class Comment(models.Model):

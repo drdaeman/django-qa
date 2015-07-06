@@ -22,6 +22,11 @@
 
   background: #AA66CC;
 }
+
+button.highlight {
+  border-color: #99CC00;
+  border-width: 3px;
+}
 </style>
 
 <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
@@ -82,8 +87,11 @@ cool {
   <h3><cool>Q: </cool>{{ question.question_text }}</h3>
   <p>
     {% if user.is_authenticated %}
-  <a href="{% url "qa:thumb" question.id 0 %}" class="btn btn-success"><span class="glyphicon glyphicon-thumbs-up" aria-hidden="true"></span></a>
-  <a href="{% url "qa:thumb" question.id 1 %}" class="btn btn-danger"><span class="glyphicon glyphicon-thumbs-down" aria-hidden="true"></span></a>
+      <form method="POST" action="{% url "qa:thumb" question.id %}" style="display: inline;">
+        {% csrf_token %}
+        <button class="btn btn-success{% if vote == "up" %} highlight{% endif %}" {% if vote %}disabled{% endif %} type="submit" name="vote" value="up"><span class="glyphicon glyphicon-thumbs-up" aria-hidden="true"></span></button>
+        <button class="btn btn-danger{% if vote == "down" %} highlight{% endif %}" {% if vote %}disabled{% endif %} type="submit" name="vote" value="down"><span class="glyphicon glyphicon-thumbs-down" aria-hidden="true"></span></button>
+      </form>
     {% endif %}
     {% if question.closed %}
     <p class="pull-right">This Question has been closed.</p>
@@ -105,7 +113,13 @@ cool {
       <div class ="col-md-1">
         <div class="row">
           <div class ="col-sm-1"><big class="pull-left"><b>{{ answer.votes }}</b></big></div>
-          <div class ="col-sm-1"><a class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="top" title="Vote Up this answer" href="/vote/{{ user.id }}/{{ answer.id }}/{{ question.id }}/0/"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></a> <a class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="bottom" title="Vote Down this answer" href="/vote/{{ user.id }}/{{ answer.id }}/{{ question.id }}/1/"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></a></div>
+          <div class="col-sm-1">
+            <form method="POST" action="{% url "qa:vote" answer.id question.id %}" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" name="vote" value="up" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="top" title="Vote Up this answer"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button>
+              <button type="submit" name="vote" value="down" class="btn btn-sm btn-danger" data-toggle="tooltip" data-placement="bottom" title="Vote Down this answer"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></button>
+            </form>
+          </div>
         </div>
       </div>
       {% endif %}
