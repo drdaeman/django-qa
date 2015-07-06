@@ -1,9 +1,8 @@
 from __future__ import absolute_import
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
-from django.http import HttpResponseRedirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from .models import UserProfile, Question, Answer, Comment, Tag, QVoter, Voter
@@ -119,14 +118,12 @@ def profile(request, user_id):
 
 
 @login_required
+@transaction.atomic
 def add(request):
     if request.method == 'POST':
         question_text = request.POST['question']
         tags_text = request.POST['tags']
-        user_id = request.POST['user']
-        print user_id
-        user_ob = get_object_or_404(get_user_model(), id=user_id)
-        user = get_user_profile(user_ob)
+        user = get_user_profile(request.user)
 
         if question_text.strip() == '':
             return render(request, 'qa/add.html', {'message': 'Empty'})
@@ -148,17 +145,17 @@ def add(request):
                 t.slug = tag_slug
                 t.save()
                 q.tags.add(t)
-        return HttpResponseRedirect('/')
+        return redirect("qa:detail", question_id=q.id)
     return render(request, 'qa/add.html', {})
 
 
 @login_required
+@transaction.atomic
 def comment(request, answer_id):
     if request.method == 'POST':
         comment_text = request.POST['comment']
-        user_id = request.POST['user']
-        user_ob = get_object_or_404(get_user_model(), id=user_id)
-        user = get_user_profile(user_ob)
+
+        user = get_user_profile(request.user)
         user.points += 1
         user.save()
 
@@ -228,11 +225,10 @@ def answer(request, question_id):
 def add_answer(request):
     answer_text = request.POST['answer']
     question_id = request.POST['question']
-    user_id = request.POST['user']
 
     question = get_object_or_404(Question, pk=question_id)
-    user_ob = get_object_or_404(get_user_model(), id=user_id)
-    user = get_user_profile(user_ob)
+
+    user = get_user_profile(request.user)
     user.points += 5
     user.save()
 
@@ -247,26 +243,12 @@ def add_answer(request):
     a.pub_date = pub_date
     a.save()
 
-    answer_list = question.answer_set.order_by('-votes')
+    return redirect("qa:detail", question_id=question.id)
 
-    paginator = Paginator(answer_list, 10)
-    page = request.GET.get('page')
-    try:
-        answers = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        answers = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        answers = paginator.page(paginator.num_pages)
-
-    return render(request, 'qa/detail.html', {'question': question, 'answers': answers})
-
-
+@login_required
 @transaction.atomic
-def vote(request, user_id, answer_id, question_id, op_code):
-    user_ob = get_object_or_404(get_user_model(), id=user_id)
-    user = get_user_profile(user_ob)
+def vote(request, answer_id, question_id, op_code):
+    user = get_user_profile(request.user)
     question = get_object_or_404(Question, pk=question_id)
     answer_ob = get_object_or_404(Answer, pk=answer_id)
 
@@ -325,10 +307,10 @@ def vote(request, user_id, answer_id, question_id, op_code):
     return render(request, 'qa/detail.html', {'question': question, 'answers': answers})
 
 
+@login_required
 @transaction.atomic
-def thumb(request, user_id, question_id, op_code):
-    user_ob = get_object_or_404(get_user_model(), id=user_id)
-    user = get_user_profile(user_ob)
+def thumb(request, question_id, op_code):
+    user = get_user_profile(request.user)
     question = Question.objects.get(pk=question_id)
 
     answer_list = question.answer_set.order_by('-votes')
@@ -360,22 +342,9 @@ def thumb(request, user_id, question_id, op_code):
         u.save()
     question.save()
 
-    answer_list = question.answer_set.order_by('-votes')
-
-    paginator = Paginator(answer_list, 10)
-    page = request.GET.get('page')
-    try:
-        answers = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        answers = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        answers = paginator.page(paginator.num_pages)
-
     v = QVoter()
     v.user = user
     v.question = question
     v.save()
 
-    return render(request, 'qa/detail.html', {'question': question, 'answers': answers})
+    return redirect("qa:detail", question_id=question.id)
