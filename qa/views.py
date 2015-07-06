@@ -211,13 +211,13 @@ def detail(request, question_id):
         answers = paginator.page(paginator.num_pages)
 
     if request.user.is_authenticated():
-        vote = QVoter.objects.filter(question=question, user__user=request.user).first()
-        if vote is not None:
-            vote = "up" if vote.vote else "down"
+        existing_vote = QVoter.objects.filter(question=question, user__user=request.user).first()
+        if existing_vote is not None:
+            existing_vote = "up" if existing_vote.vote else "down"
     else:
-        vote = None
+        existing_vote = None
 
-    return render(request, 'qa/detail.html', {'answers': answers, 'question': question, 'vote': vote})
+    return render(request, 'qa/detail.html', {'answers': answers, 'question': question, 'vote': existing_vote})
 
 
 @login_required
@@ -251,6 +251,7 @@ def add_answer(request):
     a.save()
 
     return redirect("qa:detail", question_id=question.id)
+
 
 @require_POST
 @login_required
@@ -336,11 +337,10 @@ def thumb(request, question_id):
         # If page is out of range (e.g. 9999), deliver last page of results.
         answers = paginator.page(paginator.num_pages)
 
-
-    vote = QVoter.objects.select_for_update().filter(question=question, user__user=request.user).first()
-    if vote is not None:
-        vote = "up" if vote.vote else "down"
-        return render(request, 'qa/detail.html', {'question': question, 'answers': answers, 'vote': vote,
+    existing_vote = QVoter.objects.select_for_update().filter(question=question, user__user=request.user).first()
+    if existing_vote is not None:
+        existing_vote = "up" if existing_vote.vote else "down"
+        return render(request, 'qa/detail.html', {'question': question, 'answers': answers, 'vote': existing_vote,
                                                   'message': "You've already cast vote on this question!"})
 
     if is_upvote:
