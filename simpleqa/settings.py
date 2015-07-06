@@ -41,6 +41,7 @@ INSTALLED_APPS = (
     'bootstrap3',
     'django_markdown',
     'rest_framework',
+    'south',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -100,3 +101,9 @@ MARKDOWN_EDITOR_SKIN = 'simple'
 
 LOGIN_URL = '/login/'
 LOGOUT_URL = '/logout/'
+
+
+SOUTH_MIGRATION_MODULES = {
+    "qanda": "ignore",
+    "qa": "qa.south_migrations",
+}
