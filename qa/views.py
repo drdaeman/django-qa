@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
+from django.utils.text import slugify
 from .models import UserProfile, Question, Answer, Comment, Tag, QVoter, Voter
 import datetime
 
@@ -137,6 +138,10 @@ def add(request):
 
         tags = tags_text.split(',')
         for tag_slug in tags:
+            tag_slug = slugify(tag_slug.strip())
+            if not tag_slug:
+                # Ignore this tag
+                continue
             try:
                 t = Tag.objects.get(slug=tag_slug)
                 q.tags.add(t)
