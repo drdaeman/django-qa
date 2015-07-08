@@ -11,7 +11,7 @@ urlpatterns = patterns('qa.views',
     url(r'^vote/(?P<answer_id>\d+)/(?P<question_id>\d+)/$', 'vote', name='vote'),
     url(r'^comment/(?P<answer_id>\d+)/$', 'comment', name='comment'),
     url(r'^search/$', 'search', name='search'),
-    url(r'^tag/(?P<slug>\w+)/$', 'tag', name='tag'),
+    url(r'^tag/(?P<slug>[^/]+)/$', 'tag', name='tag'),
     url(r'^thumb/(?P<question_id>\d+)/$', 'thumb', name='thumb'),
 
     url(r'^profile/(?P<user_id>\d+)/$', 'profile', name='profile'),
