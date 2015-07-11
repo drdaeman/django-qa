@@ -29,7 +29,7 @@ class UserProfile(models.Model):
 
 
 class Question(models.Model):
-    question_text = models.CharField(max_length=200)
+    question_text = models.TextField()
     pub_date = models.DateTimeField('date published')
     tags = models.ManyToManyField(Tag)
     reward = models.IntegerField(default=0)
