@@ -72,7 +72,7 @@ class QVoter(models.Model):
 
 class Comment(models.Model):
     answer = models.ForeignKey(Answer)
-    comment_text = models.CharField(max_length=200)
+    comment_text = models.TextField()
     pub_date = models.DateTimeField('date published')
     user_data = models.ForeignKey(UserProfile)
 
